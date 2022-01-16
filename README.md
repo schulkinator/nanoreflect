@@ -1,8 +1,8 @@
 # nanoreflect
-An extremely simple C++ reflection library. Mostly useful for vertex layout in graphics programs and games.
+An extremely simple C++ reflection library. Mostly useful for vertex struct layout descriptions in graphics programs and games.
 
-Example usage:
-
+## Example usage:
+```
 // Declare your structure as usual
 #pragma pack(1)
 struct Vertex {
@@ -69,4 +69,4 @@ nanoreflect::Member* member_normal = type_desc->GetMember(&Vertex::normal);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_id_);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint16_t), indices.data(), GL_STATIC_DRAW);
 }
-  
+ ```
