@@ -32,6 +32,7 @@ namespace nanoreflect {
   struct Member {
     size_t ordinal;
     size_t offset;
+    size_t size;
     const char* name;    
     void* type_descriptor; // this can be cast to TypeDescriptor<T>* type
   };
@@ -40,18 +41,23 @@ namespace nanoreflect {
   struct TypeDescriptor {
     const char* name;
     size_t size;    
-    // maps offsets to the corresponding Member. since each member will have a unique offset
-    std::map<size_t, Member> offset_to_members;
-    size_t next_member_ordinal;
-    
-    TypeDescriptor() : name(typeid(T).name()), size(sizeof(T)), next_member_ordinal(0) {
+    // maps offsets to the corresponding Member index. since each member will have a unique offset
+    std::map<size_t, size_t> offset_to_member_ordinal;
+    std::vector<Member> members;
+        
+    TypeDescriptor() : name(typeid(T).name()), size(sizeof(T)) {
     }
     
     template <typename TM> // TM is the Type of the Member
     Member* GetMember(TM T::* member) {      
       static T object{}; // this can also be constexpr but that limits us to constexpr constructors
       size_t offset = size_t(&(object.*member)) - size_t(&object);
-      return &offset_to_members[offset];
+      return &members[offset_to_member_ordinal[offset]];
+    }
+
+    // Get member by ordinal
+    Member* GetMember(int ordinal) {
+      return &members[ordinal];
     }
 
     // must be called in the order that the members appear in the structure
@@ -59,8 +65,9 @@ namespace nanoreflect {
     void AddMember(TM T::* member, const char* member_name) {      
       static T object{}; // this can also be constexpr but that limits us to constexpr constructors
       size_t offset = size_t(&(object.*member)) - size_t(&object);
-      Member m{ next_member_ordinal++, offset, member_name, this };
-      offset_to_members[offset] = m;
+      Member m{ members.size(), offset, sizeof(TM), member_name, this };
+      members.push_back(m);
+      offset_to_member_ordinal[offset] = m.ordinal;
     }
   };
 
