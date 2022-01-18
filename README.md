@@ -69,4 +69,29 @@ nanoreflect::Member* member_normal = type_desc->GetMember(&Vertex::normal);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_id_);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint16_t), indices.data(), GL_STATIC_DRAW);
 }
+
+// Here's a different more generic and compact version of the above by iterating over the members
+void SetupBuffers(std::vector<Vertex>& vertices, std::vector<uint16_t> indices, GLuint& vbo_id, GLuint& vao_id, GLuint& index_buffer_id) {
+  glGenBuffers(1, &vbo_id);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+  glGenVertexArrays(1, &vao_id);
+  glBindVertexArray(vao_id);
+
+  nanoreflect::TypeDescriptor<Vertex>* type_desc = nanoreflect::GetTypeDescriptor<Vertex>();
+  
+  for (int i = 0; i < type_desc->members.size(); ++i) {
+    nanoreflect::Member* member = type_desc->GetMember(i);
+    GLuint attribLocation = member->ordinal;
+    size_t num_floats = member->size / sizeof(float);
+    glVertexAttribPointer(attribLocation, num_floats, GL_FLOAT, GL_FALSE, sizeof(Vertex), BUFFER_OFFSET(member->offset)); // stride is in units of bytes, offset is also in bytes
+    glEnableVertexAttribArray(attribLocation);
+  }
+    
+  // generate the index buffer
+  glGenBuffers(1, &index_buffer_id);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_id);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint16_t), indices.data(), GL_STATIC_DRAW);
+}
+
  ```
