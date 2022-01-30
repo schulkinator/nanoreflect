@@ -48,7 +48,7 @@ namespace nanoreflect {
   struct TypeDescriptorInfo {
     const char* type_name; // string name of this type
     size_t size; // size in bytes of this type in memory
-    int type_id; // unique type id of this type, determined at runtime only
+    unsigned int type_id; // unique type id of this type, determined at runtime only
   };
 
   struct Member {
@@ -69,7 +69,7 @@ namespace nanoreflect {
     std::map<size_t, size_t> offset_to_member_ordinal;
     std::vector<Member> members;
     
-    TypeDescriptor() : type_info{ typeid(T).name(), sizeof(T), reinterpret_cast<int>(this) } {
+    TypeDescriptor() : type_info{ typeid(T).name(), sizeof(T), reinterpret_cast<unsigned int>(this) } {
     }
     
     // Only one instance of this class should ever exist in memory. Do not allow copying at all.
