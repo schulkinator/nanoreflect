@@ -79,12 +79,14 @@ void SetupBuffers(std::vector<Vertex>& vertices, std::vector<uint16_t> indices, 
   glBindVertexArray(vao_id);
 
   nanoreflect::TypeDescriptor<Vertex>* type_desc = nanoreflect::GetTypeDescriptor<Vertex>();
-  
-  for (int i = 0; i < type_desc->members.size(); ++i) {
-    nanoreflect::Member* member = type_desc->GetMember(i);
-    GLuint attribLocation = member->ordinal;
-    size_t num_floats = member->size / sizeof(float);
-    glVertexAttribPointer(attribLocation, num_floats, GL_FLOAT, GL_FALSE, sizeof(Vertex), BUFFER_OFFSET(member->offset)); // stride is in units of bytes, offset is also in bytes
+  nanoreflect::MemberList& members = type_desc->GetMemberList();
+
+  for (int i = 0; i < members.size(); ++i) {
+    const nanoreflect::Member& member = members[i];
+    GLuint attribLocation = member.ordinal;
+    size_t num_floats = member.size / sizeof(float);
+    printf("field type: %s, field name: %s, type_id: %d\n", member.type_name, member.name, member.type_id);
+    glVertexAttribPointer(attribLocation, num_floats, GL_FLOAT, GL_FALSE, sizeof(TV), BUFFER_OFFSET(member.offset)); // stride is in units of bytes, offset is also in bytes
     glEnableVertexAttribArray(attribLocation);
   }
     
