@@ -118,4 +118,9 @@ struct type_name ## _static_typedescriptor_constructor { \
 } Static_instance_typedescriptor_constructor_ ## type_name;
 
 };
+#if _MSC_VER >= 1200
+// visual studio specific compiler warnings
+#pragma warning ( pop )
+#pragma warning ( pop )
+#endif
 #endif
