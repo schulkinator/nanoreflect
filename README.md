@@ -86,7 +86,7 @@ void SetupBuffers(std::vector<Vertex>& vertices, std::vector<uint16_t> indices, 
     GLuint attribLocation = member.ordinal;
     size_t num_floats = member.type_info.size / sizeof(float);
     printf("field type: %s, field name: %s, type_id: %d\n", member.type_info.type_name, member.name, member.type_info.type_id);
-    glVertexAttribPointer(attribLocation, num_floats, GL_FLOAT, GL_FALSE, sizeof(TV), BUFFER_OFFSET(member.offset)); // stride is in units of bytes, offset is also in bytes
+    glVertexAttribPointer(attribLocation, num_floats, GL_FLOAT, GL_FALSE, sizeof(Vertex), BUFFER_OFFSET(member.offset)); // stride is in units of bytes, offset is also in bytes
     glEnableVertexAttribArray(attribLocation);
   }
     
