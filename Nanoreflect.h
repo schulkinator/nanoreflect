@@ -24,59 +24,86 @@ SOFTWARE.
 #ifndef NANO_REFLECT_H_INCLUDED
 #define NANO_REFLECT_H_INCLUDED
 #include <map>
+#include <iterator>
+
+#if _MSC_VER >= 1200
+// visual studio specific compiler warnings
+// pointer truncation warning
+#pragma warning(disable : 4311)
+#pragma warning(disable : 26495)
+#endif
+
 namespace nanoreflect {
 
   template <typename T>
   struct TypeDescriptor;
-    
-  struct Member {
-    size_t ordinal;
-    size_t offset;
-    size_t size;
-    const char* name;    
-    void* type_descriptor; // this can be cast to TypeDescriptor<T>* type
-  };
-
-  template <typename T> // T is the type this TypeDescriptor represents
-  struct TypeDescriptor {
-    const char* name;
-    size_t size;    
-    // maps offsets to the corresponding Member index. since each member will have a unique offset
-    std::map<size_t, size_t> offset_to_member_ordinal;
-    std::vector<Member> members;
-        
-    TypeDescriptor() : name(typeid(T).name()), size(sizeof(T)) {
-    }
-    
-    template <typename TM> // TM is the Type of the Member
-    Member* GetMember(TM T::* member) {      
-      static T object{}; // this can also be constexpr but that limits us to constexpr constructors
-      size_t offset = size_t(&(object.*member)) - size_t(&object);
-      return &members[offset_to_member_ordinal[offset]];
-    }
-
-    // Get member by ordinal
-    Member* GetMember(int ordinal) {
-      return &members[ordinal];
-    }
-
-    // must be called in the order that the members appear in the structure
-    template <typename TM> // TM is the Type of the Member
-    void AddMember(TM T::* member, const char* member_name) {      
-      static T object{}; // this can also be constexpr but that limits us to constexpr constructors
-      size_t offset = size_t(&(object.*member)) - size_t(&object);
-      Member m{ members.size(), offset, sizeof(TM), member_name, this };
-      members.push_back(m);
-      offset_to_member_ordinal[offset] = m.ordinal;
-    }
-  };
-
+  
   template <typename T>
   TypeDescriptor<T>* GetTypeDescriptor() {
     // all type descriptors live here as static objects in memory
     static TypeDescriptor<T> type_descriptor;
     return &type_descriptor;
   }
+
+  struct Member {
+    size_t ordinal; // order this member appears in its containing class
+    size_t offset; // byte offset of this member in memory from the start of its containing class
+    size_t size; // size in bytes of this member in memory
+    int type_id; // unique type id of this member
+    const char* type_name; // string type name of this member
+    const char* name; // the name of the member in its containing class
+    void* type_descriptor; // pointer to the type descriptor for this member, this can be cast to TypeDescriptor<T>* type
+  };
+
+  typedef const std::vector<Member> MemberList;
+
+  template <typename T> // T is the type this TypeDescriptor represents
+  struct TypeDescriptor {
+        
+    const char* name; // string name of this type
+    size_t size; // size in bytes of this type in memory
+    int type_id; // unique type id of this type
+    // maps offsets to the corresponding Member index. since each member will have a unique offset
+    std::map<size_t, size_t> offset_to_member_ordinal;
+    std::vector<Member> members;
+        
+    TypeDescriptor() : name(typeid(T).name()), size(sizeof(T)), type_id(reinterpret_cast<int>(this)) {
+    }
+    
+    // Only one instance of this class should ever exist in memory. Do not allow copying at all.
+    TypeDescriptor(const TypeDescriptor&) = delete;
+    TypeDescriptor(const TypeDescriptor&&) = delete;
+    TypeDescriptor& operator=(const TypeDescriptor&) = delete;
+
+    template <typename TM> // TM is the Type of the Member
+    const Member* GetMember(TM T::* member) {      
+      static T object{}; // this can also be constexpr instead of static but that limits us to constexpr constructors
+      size_t offset = size_t(&(object.*member)) - size_t(&object);
+      return &members[offset_to_member_ordinal[offset]];
+    }
+
+    // Get member by ordinal
+    const Member* GetMember(int ordinal) {
+      return &members[ordinal];
+    }
+
+    // get the list of all members
+    MemberList& GetMemberList() {
+      return members;
+    }
+
+    // must be called in the order that the members appear in the structure
+    template <typename TM> // TM is the Type of the Member
+    void AddMember(TM T::* member, const char* member_name) {      
+      static T object{}; // this can also be constexpr instead of static but that limits us to constexpr constructors
+      size_t offset = size_t(&(object.*member)) - size_t(&object);
+      TypeDescriptor<TM> *member_type_desc = GetTypeDescriptor<TM>();
+      Member m{ members.size(), offset, sizeof(TM), member_type_desc->type_id, typeid(TM).name(), member_name, member_type_desc };
+      members.push_back(m);
+      offset_to_member_ordinal[offset] = m.ordinal;
+    }
+  };
+  
 
 #define REFLECTED_OBJECT_BEGIN(type_name) \
 struct type_name ## _static_typedescriptor_constructor { \
