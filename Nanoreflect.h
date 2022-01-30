@@ -44,13 +44,17 @@ namespace nanoreflect {
     static TypeDescriptor<T> type_descriptor;
     return &type_descriptor;
   }
+  
+  struct TypeDescriptorInfo {
+    const char* type_name; // string name of this type
+    size_t size; // size in bytes of this type in memory
+    int type_id; // unique type id of this type, determined at runtime only
+  };
 
   struct Member {
     size_t ordinal; // order this member appears in its containing class
     size_t offset; // byte offset of this member in memory from the start of its containing class
-    size_t size; // size in bytes of this member in memory
-    int type_id; // unique type id of this member
-    const char* type_name; // string type name of this member
+    TypeDescriptorInfo type_info;
     const char* name; // the name of the member in its containing class
     void* type_descriptor; // pointer to the type descriptor for this member, this can be cast to TypeDescriptor<T>* type
   };
@@ -60,14 +64,12 @@ namespace nanoreflect {
   template <typename T> // T is the type this TypeDescriptor represents
   struct TypeDescriptor {
         
-    const char* name; // string name of this type
-    size_t size; // size in bytes of this type in memory
-    int type_id; // unique type id of this type
+    TypeDescriptorInfo type_info;
     // maps offsets to the corresponding Member index. since each member will have a unique offset
     std::map<size_t, size_t> offset_to_member_ordinal;
     std::vector<Member> members;
-        
-    TypeDescriptor() : name(typeid(T).name()), size(sizeof(T)), type_id(reinterpret_cast<int>(this)) {
+    
+    TypeDescriptor() : type_info{ typeid(T).name(), sizeof(T), reinterpret_cast<int>(this) } {
     }
     
     // Only one instance of this class should ever exist in memory. Do not allow copying at all.
@@ -98,7 +100,8 @@ namespace nanoreflect {
       static T object{}; // this can also be constexpr instead of static but that limits us to constexpr constructors
       size_t offset = size_t(&(object.*member)) - size_t(&object);
       TypeDescriptor<TM> *member_type_desc = GetTypeDescriptor<TM>();
-      Member m{ members.size(), offset, sizeof(TM), member_type_desc->type_id, typeid(TM).name(), member_name, member_type_desc };
+      TypeDescriptorInfo type_info{ typeid(TM).name(), sizeof(TM), member_type_desc->type_info.type_id };
+      Member m{ members.size(), offset, type_info, member_name, member_type_desc };
       members.push_back(m);
       offset_to_member_ordinal[offset] = m.ordinal;
     }
