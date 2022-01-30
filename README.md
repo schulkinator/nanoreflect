@@ -79,11 +79,10 @@ void SetupBuffers(std::vector<Vertex>& vertices, std::vector<uint16_t> indices, 
   glBindVertexArray(vao_id);
 
   nanoreflect::TypeDescriptor<Vertex>* type_desc = nanoreflect::GetTypeDescriptor<Vertex>();
-  nanoreflect::TypeDescriptorInfo vertex_type_info = type_desc->type_info;
-  nanoreflect::MemberList& members = type_desc->GetMemberList();
-
-  for (int i = 0; i < members.size(); ++i) {
-    const nanoreflect::Member& member = members[i];
+  nanoreflect::TypeDescriptorInfo& vertex_type_info = type_desc->type_info;
+  
+  for (int i = 0; i < vertex_type_info.members.size(); ++i) {
+    const nanoreflect::Member& member = vertex_type_info.members[i];
     GLuint attribLocation = member.ordinal;
     size_t num_floats = member.type_info.size / sizeof(float);
     printf("field type: %s, field name: %s, type_id: %u\n", member.type_info.type_name, member.name, member.type_info.type_id);
