@@ -25,10 +25,12 @@ SOFTWARE.
 #define NANO_REFLECT_H_INCLUDED
 #include <map>
 #include <iterator>
+#include <vector>
 
 #if _MSC_VER >= 1200
 // visual studio specific compiler warnings
 // pointer truncation warning
+#pragma warning (push)
 #pragma warning(disable : 4311)
 #pragma warning(disable : 26495)
 #endif
@@ -116,7 +118,6 @@ struct type_name ## _static_typedescriptor_constructor { \
 };
 #if _MSC_VER >= 1200
 // visual studio specific compiler warnings
-#pragma warning ( pop )
 #pragma warning ( pop )
 #endif
 #endif
