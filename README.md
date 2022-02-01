@@ -85,7 +85,7 @@ void SetupBuffers(std::vector<Vertex>& vertices, std::vector<uint16_t> indices, 
     const nanoreflect::Member& member = vertex_type_data.members[i];
     GLuint attribLocation = member.ordinal;
     size_t num_floats = member.type_data.size / sizeof(float);
-    printf("field type: %s, field name: %s, type_id: %u\n", member.type_info.type_name, member.name, member.type_info.type_id);
+    printf("field type: %s, field name: %s, type_id: %u\n", member.type_data.type_name, member.name, member.type_data.type_id);
     glVertexAttribPointer(attribLocation, num_floats, GL_FLOAT, GL_FALSE, vertex_type_data.size, BUFFER_OFFSET(member.offset)); // stride is in units of bytes, offset is also in bytes
     glEnableVertexAttribArray(attribLocation);
   }
