@@ -33,6 +33,7 @@ SOFTWARE.
 #pragma warning (push)
 #pragma warning(disable : 4311)
 #pragma warning(disable : 26495)
+#pragma warning(disable : 4302)
 #endif
 
 namespace nanoreflect {
@@ -48,7 +49,7 @@ namespace nanoreflect {
   }
   
   struct Member;
-  struct TypeDescriptorInfo {
+  struct TypeDescriptorData {
     const char* type_name; // string name of this type
     size_t size; // size in bytes of this type in memory
     unsigned int type_id; // unique type id of this type, determined at runtime only
@@ -58,7 +59,7 @@ namespace nanoreflect {
   struct Member {
     size_t ordinal; // order this member appears in its containing class
     size_t offset; // byte offset of this member in memory from the start of its containing class
-    TypeDescriptorInfo type_info;
+    TypeDescriptorData type_data;
     const char* name; // the name of the member in its containing class
     void* type_descriptor; // pointer to the type descriptor for this member, this can be cast to TypeDescriptor<T>* type
   };
@@ -66,11 +67,14 @@ namespace nanoreflect {
   template <typename T> // T is the type this TypeDescriptor represents
   struct TypeDescriptor {
         
-    TypeDescriptorInfo type_info;
+    TypeDescriptorData type_data;
     // lookup that maps offsets to the corresponding Member index. since each member will have a unique offset
     std::map<size_t, size_t> offset_to_member_ordinal;
-        
-    TypeDescriptor() : type_info{ typeid(T).name(), sizeof(T), reinterpret_cast<unsigned int>(this), {} } {
+    
+    TypeDescriptor() {      
+      type_data.type_name = typeid(T).name();
+      type_data.size = sizeof(T);
+      type_data.type_id = reinterpret_cast<unsigned int>(this);      
     }
     
     // Only one instance of this class should ever exist in memory. Do not allow copying at all.
@@ -82,12 +86,12 @@ namespace nanoreflect {
     const Member* GetMember(TM T::* member) {      
       static T object{}; // this can also be constexpr instead of static but that limits us to constexpr constructors
       size_t offset = size_t(&(object.*member)) - size_t(&object);
-      return &type_info.members[offset_to_member_ordinal[offset]];
+      return &type_data.members[offset_to_member_ordinal[offset]];
     }
 
     // Get member by ordinal
     const Member* GetMember(int ordinal) {
-      return &type_info.members[ordinal];
+      return &type_data.members[ordinal];
     }
 
     // must be called in the order that the members appear in the structure
@@ -96,8 +100,8 @@ namespace nanoreflect {
       static T object{}; // this can also be constexpr instead of static but that limits us to constexpr constructors
       size_t offset = size_t(&(object.*member)) - size_t(&object);
       TypeDescriptor<TM> *member_type_desc = GetTypeDescriptor<TM>();      
-      Member m{ this->type_info.members.size(), offset, member_type_desc->type_info, member_name, member_type_desc };
-      this->type_info.members.push_back(m);
+      Member m{ this->type_data.members.size(), offset, member_type_desc->type_data, member_name, member_type_desc };
+      this->type_data.members.push_back(m);
       offset_to_member_ordinal[offset] = m.ordinal;
     }
   };
