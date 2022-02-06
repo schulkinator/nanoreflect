@@ -47,7 +47,7 @@ namespace nanoreflect {
   struct TypeDescriptor;
   
   template <typename T>
-  TypeDescriptor<T>* GetTypeDescriptor() {
+  const TypeDescriptor<T>* GetTypeDescriptor() {
     // all type descriptors live here as static objects in memory
     static TypeDescriptor<T> type_descriptor;
     return &type_descriptor;
@@ -109,10 +109,10 @@ namespace nanoreflect {
     void AddMember(TM T::* member, const char* member_name) {      
       static T object{}; // this can also be constexpr instead of static but that limits us to constexpr constructors
       size_t offset = size_t(&(object.*member)) - size_t(&object);
-      TypeDescriptor<TM> *member_type_desc = GetTypeDescriptor<TM>();      
+      const TypeDescriptor<TM> *member_type_desc = GetTypeDescriptor<TM>();      
       TypeDescriptorData* mutable_td_type_data = const_cast<TypeDescriptorData*>(&this->type_data);
       TypeDescriptorData* mutable_member_type_data = const_cast<TypeDescriptorData*>(&member_type_desc->type_data);
-      Member m { mutable_td_type_data->members.size(), offset, *mutable_member_type_data, member_name, member_type_desc };
+      Member m { mutable_td_type_data->members.size(), offset, *mutable_member_type_data, member_name, const_cast<TypeDescriptor<TM>*>(member_type_desc) };
       mutable_td_type_data->members.push_back(m);
       offset_to_member_ordinal[offset] = m.ordinal;
     }
@@ -122,10 +122,11 @@ namespace nanoreflect {
 #define REFLECTED_OBJECT_BEGIN(type_name) \
 struct type_name ## _static_typedescriptor_constructor { \
   type_name ## _static_typedescriptor_constructor () { \
-    nanoreflect::TypeDescriptor<type_name>* type_desc = nanoreflect::GetTypeDescriptor<type_name>(); \
+    const nanoreflect::TypeDescriptor<type_name>* type_desc = nanoreflect::GetTypeDescriptor<type_name>(); \
+    nanoreflect::TypeDescriptor<type_name>* mutable_type_desc = const_cast<nanoreflect::TypeDescriptor<type_name>*>(type_desc);
 
 #define REFLECTED_OBJECT_MEMBER(type_name, name) \
-    type_desc->AddMember(&type_name::name , #name );
+    mutable_type_desc->AddMember(&type_name::name , #name );
 
 #define REFLECTED_OBJECT_END(type_name) \
   } \
