@@ -27,7 +27,12 @@ SOFTWARE.
 #include <iterator>
 #include <vector>
 
-#if _MSC_VER >= 1200
+// workaround for undefined type_info in msvc
+#ifdef _MSC_VER
+#  include "typeinfo" //cannot use angle brackets here...
+#endif
+
+#ifdef _MSC_VER
 // visual studio specific compiler warnings
 // pointer truncation warning
 #pragma warning (push)
@@ -67,14 +72,19 @@ namespace nanoreflect {
   template <typename T> // T is the type this TypeDescriptor represents
   struct TypeDescriptor {
         
-    TypeDescriptorData type_data;
+    const TypeDescriptorData type_data;
     // lookup that maps offsets to the corresponding Member index. since each member will have a unique offset
     std::map<size_t, size_t> offset_to_member_ordinal;
     
     TypeDescriptor() {      
-      type_data.type_name = typeid(T).name();
-      type_data.size = sizeof(T);
-      type_data.type_id = reinterpret_cast<unsigned int>(this);      
+// workaround for undefined type_info in msvc
+#ifdef _MSC_VER
+      using ::type_info;
+#endif
+      TypeDescriptorData* mutable_td_type_data = const_cast<TypeDescriptorData*>(&this->type_data);
+      mutable_td_type_data->type_name = typeid(T).name();
+      mutable_td_type_data->size = sizeof(T);
+      mutable_td_type_data->type_id = reinterpret_cast<unsigned int>(this);
     }
     
     // Only one instance of this class should ever exist in memory. Do not allow copying at all.
@@ -100,8 +110,10 @@ namespace nanoreflect {
       static T object{}; // this can also be constexpr instead of static but that limits us to constexpr constructors
       size_t offset = size_t(&(object.*member)) - size_t(&object);
       TypeDescriptor<TM> *member_type_desc = GetTypeDescriptor<TM>();      
-      Member m{ this->type_data.members.size(), offset, member_type_desc->type_data, member_name, member_type_desc };
-      this->type_data.members.push_back(m);
+      TypeDescriptorData* mutable_td_type_data = const_cast<TypeDescriptorData*>(&this->type_data);
+      TypeDescriptorData* mutable_member_type_data = const_cast<TypeDescriptorData*>(&member_type_desc->type_data);
+      Member m { mutable_td_type_data->members.size(), offset, *mutable_member_type_data, member_name, member_type_desc };
+      mutable_td_type_data->members.push_back(m);
       offset_to_member_ordinal[offset] = m.ordinal;
     }
   };
@@ -117,7 +129,7 @@ struct type_name ## _static_typedescriptor_constructor { \
 
 #define REFLECTED_OBJECT_END(type_name) \
   } \
-} Static_instance_typedescriptor_constructor_ ## type_name;
+} static Static_instance_typedescriptor_constructor_ ## type_name;
 
 };
 #if _MSC_VER >= 1200
