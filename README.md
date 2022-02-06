@@ -4,7 +4,6 @@ An extremely simple C++ reflection library. Mostly useful for vertex struct layo
 ## Example usage:
 ```
 // Declare your structure as usual
-#pragma pack(1)
 struct Vertex {
   glm::vec3 pos;
   glm::vec2 uv;
@@ -19,7 +18,6 @@ REFLECTED_OBJECT_MEMBER(Vertex, normal)
 REFLECTED_OBJECT_END(Vertex)
 
 // you can even use it with inherited objects
-#pragma pack(1)
 struct VertexWithTangent : public Vertex {
   glm::vec3 tangent;
 };
@@ -47,10 +45,10 @@ nanoreflect::Member* member_normal = type_desc->GetMember(&Vertex::normal);
   glGenVertexArrays(1, &vaoId_);
   glBindVertexArray(vaoId_);
 
-  nanoreflect::TypeDescriptor<Vertex>* type_desc = nanoreflect::GetTypeDescriptor<Vertex>();
-  nanoreflect::Member* member_pos = type_desc->GetMember(&Vertex::pos);
-  nanoreflect::Member* member_uv = type_desc->GetMember(&Vertex::uv);
-  nanoreflect::Member* member_normal = type_desc->GetMember(&Vertex::normal);
+  const nanoreflect::TypeDescriptor<Vertex>* type_desc = nanoreflect::GetTypeDescriptor<Vertex>();
+  const nanoreflect::Member* member_pos = type_desc->GetMember(&Vertex::pos);
+  const nanoreflect::Member* member_uv = type_desc->GetMember(&Vertex::uv);
+  const nanoreflect::Member* member_normal = type_desc->GetMember(&Vertex::normal);
   
   GLuint positionAttribLocation = member_pos->ordinal;
   glVertexAttribPointer(positionAttribLocation, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), BUFFER_OFFSET(member_pos->offset)); // stride is in units of bytes, offset is also in bytes
@@ -78,8 +76,8 @@ void SetupBuffers(std::vector<Vertex>& vertices, std::vector<uint16_t> indices, 
   glGenVertexArrays(1, &vao_id);
   glBindVertexArray(vao_id);
 
-  nanoreflect::TypeDescriptor<Vertex>* type_desc = nanoreflect::GetTypeDescriptor<Vertex>();
-  nanoreflect::TypeDescriptorData& vertex_type_data = type_desc->type_data;
+  const nanoreflect::TypeDescriptor<Vertex>* type_desc = nanoreflect::GetTypeDescriptor<Vertex>();
+  const nanoreflect::TypeDescriptorData& vertex_type_data = type_desc->type_data;
   
   for (int i = 0; i < vertex_type_data.members.size(); ++i) {
     const nanoreflect::Member& member = vertex_type_data.members[i];
