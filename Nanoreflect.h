@@ -59,6 +59,7 @@ namespace nanoreflect {
     size_t size; // size in bytes of this type in memory
     unsigned int type_id; // unique type id of this type, determined at runtime only
     std::vector<Member> members;
+    bool finalized; // becomes true once all members have been declared at initialization time (prevents multiple-init)
   };
 
   struct Member {
@@ -85,6 +86,7 @@ namespace nanoreflect {
       mutable_td_type_data->type_name = typeid(T).name();
       mutable_td_type_data->size = sizeof(T);
       mutable_td_type_data->type_id = reinterpret_cast<unsigned int>(this);
+      mutable_td_type_data->finalized = false;
     }
     
     // Only one instance of this class should ever exist in memory. Do not allow copying at all.
@@ -108,13 +110,21 @@ namespace nanoreflect {
     template <typename TM> // TM is the Type of the Member
     void AddMember(TM T::* member, const char* member_name) {      
       static T object{}; // this can also be constexpr instead of static but that limits us to constexpr constructors
-      size_t offset = size_t(&(object.*member)) - size_t(&object);
-      const TypeDescriptor<TM> *member_type_desc = GetTypeDescriptor<TM>();      
       TypeDescriptorData* mutable_td_type_data = const_cast<TypeDescriptorData*>(&this->type_data);
+      if (mutable_td_type_data->finalized) { // prevent multiple-init
+        return;
+      }
+      size_t offset = size_t(&(object.*member)) - size_t(&object);
+      const TypeDescriptor<TM> *member_type_desc = GetTypeDescriptor<TM>();            
       TypeDescriptorData* mutable_member_type_data = const_cast<TypeDescriptorData*>(&member_type_desc->type_data);
       Member m { mutable_td_type_data->members.size(), offset, *mutable_member_type_data, member_name, const_cast<TypeDescriptor<TM>*>(member_type_desc) };
       mutable_td_type_data->members.push_back(m);
       offset_to_member_ordinal[offset] = m.ordinal;
+    }
+
+    void Finalize() {
+      TypeDescriptorData* mutable_td_type_data = const_cast<TypeDescriptorData*>(&this->type_data);
+      mutable_td_type_data->finalized = true;
     }
   };
   
@@ -129,6 +139,7 @@ struct type_name ## _static_typedescriptor_constructor { \
     mutable_type_desc->AddMember(&type_name::name , #name );
 
 #define REFLECTED_OBJECT_END(type_name) \
+    mutable_type_desc->Finalize(); \
   } \
 } static Static_instance_typedescriptor_constructor_ ## type_name;
 
